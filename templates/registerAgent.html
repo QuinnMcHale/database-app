@@ -3,7 +3,7 @@
 <form action="/registerAgentAuth" method="POST">
 	<input type="email" name="email" placeholder="email"> <br>
 	<input type="password" name="password" placeholder="password"> <br>
-	<input type="number" name="agentID" placeholder="booking agent id"> <br>
+	<input type="number" name="agentID" placeholder="booking agent id"> <br> <br>
 	{% if error %}
 		<p class="error"><strong>Error:</strong> {{error}}</p>
 	{% endif %}

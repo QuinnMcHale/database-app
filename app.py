@@ -17,6 +17,46 @@ conn = pymysql.connect(host='127.0.0.1',
 def index():
 	return render_template('index.html')
 
+@app.route('/info')
+def info():
+	return render_template('info.html')
+@app.route('/search')
+def search():
+	sourceAirport = request.args.get('sourceAirport')
+	destAirport = request.args.get('destAirport')
+	date = request.args.get('date')
+
+	cursor = conn.cursor()
+	query = "SELECT * FROM flight WHERE departure_airport = %s AND arrival_airport = %s AND departure_time LIKE %s"
+	date = '%'+date+'%'
+	cursor.execute(query, (sourceAirport, destAirport, date))
+	data = cursor.fetchall()
+	if(not data):
+		noFlights = "No flights found"
+		cursor.close()
+		return render_template('search.html', noFlights = noFlights)
+	else:
+		flights = data
+		cursor.close()
+		return render_template('search.html', flights = flights)
+@app.route('/status')
+def status():
+	airline = request.args.get('airline')
+	flightNumber = request.args.get('flightNumber')
+
+	cursor = conn.cursor()
+	query = "SELECT * FROM flight WHERE airline_name = %s AND flight_num = %s"
+	cursor.execute(query, (airline, flightNumber))
+	data = cursor.fetchone()
+	if(not data):
+		noFlight = "No flight found"
+		cursor.close()
+		return render_template('status.html', noFlight = noFlight)
+	else:
+		flight = data
+		cursor.close()
+		return render_template('status.html', flight = flight)
+
 @app.route('/home')
 def home():
 	return render_template('home.html')

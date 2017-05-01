@@ -1,0 +1,15 @@
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
+<h1>Search Results</h1>
+
+<ol>
+{% for flight in flights %}
+	<li> <strong>Airline:</strong> {{flight.airline_name}} <strong>Flight#:</strong> {{flight.flight_num}} <strong>Departure Airport:</strong> {{flight.departure_airport}} <strong>Departure Time:</strong> {{flight.departure_time}} <br> <strong>Arrival Airport:</strong> {{flight.arrival_airport}} <strong>Arrival Time:</strong>
+	{{flight.arrival_time}} <strong>Price:</strong> ${{flight.price}} <strong>Status:</strong> {{flight.status}} <strong>AirplaneID:</strong> {{flight.airplane_id}} </li>
+{% endfor %}
+</ol>
+{% if noFlights %}
+	{{noFlights}}
+{% endif %}
+
+<br><br>
+<a href="/info">Back to Flight info</a>
