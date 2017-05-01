@@ -1,7 +1,13 @@
 <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
 <h1> Air Ticket Reservation System </h1>
 
+{% if register %}
+<h2>{{register}} <br> </h2>
+{% endif %}
+
 <a href="/register">Register your account</a> <br> <br>
+
+<a href="/login">Login</a> <br> <br>
 
 <a href="/info">Flight information</a>
 

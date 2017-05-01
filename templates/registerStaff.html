@@ -1,12 +1,12 @@
 <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
-<h1>Register as Airline Staff</h1>
+<h1>Register as an Airline Staff member</h1>
 <form action="/registerStaffAuth" method="POST">
-	<input type="text" name="username" placeholder="username"> <br>
-	<input type="password" name="password" placeholder="password"> <br>
-	<input type="text" name="firstName" placeholder="first name"> <br>
-	<input type="text" name="lastName" placeholder="last name"> <br>
-	<input type="text" name="dob" placeholder="date of birth (YYYY-MM-DD)"> <br>
-	<input type="text" name="airline" placeholder="airline name"> <br> <br>
+	<input type="text" name="username" placeholder="username" required> <br>
+	<input type="password" name="password" placeholder="password" required> <br>
+	<input type="text" name="firstName" placeholder="first name" required> <br>
+	<input type="text" name="lastName" placeholder="last name" required> <br>
+	<input type="text" name="dob" placeholder="date of birth (YYYY-MM-DD)" required> <br>
+	<input type="text" name="airline" placeholder="airline name" required> <br> <br>
 	{% if error %}
 		<p class="error"><strong>Error:</strong> {{error}}</p>
 	{% endif %}

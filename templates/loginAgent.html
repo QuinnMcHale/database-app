@@ -1,0 +1,12 @@
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
+<h1>Booking Agent Login</h1>
+<form action="/loginAgentAuth" method="POST">
+	<input type="text" name="email" placeholder="email" required> <br>
+	<input type="password" name="password" placeholder="password" required> <br> <br>
+	<input type="submit" value="Login">
+	{% if error %}
+		<p class="error"><strong>Error:</strong> {{error}}</p>
+	{% endif %}
+</form>
+
+<a href="/login">Back to Login Page</a>
