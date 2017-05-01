@@ -1,0 +1,29 @@
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
+<h1>Welcome {{username}}</h1>
+
+
+<h3>Search for Flights</h3>
+<form action="/search" method="GET">
+	<input type="text" name="sourceAirport" placeholder="Source Airport Name" required> <br>
+	<input type="text" name="sourceCity" placeholder="Source City (Optional)"> <br>
+	<input type="text" name="destAirport" placeholder="Destination Airport Name" required> <br>
+	<input type="text" name="destCity" placeholder="Destination City Name (Optional)"> <br>
+	<input type="text" name="date" placeholder="Flight Date (YYYY-MM-DD)" required> <br> <br>
+	<input type="hidden" name="agent" value="yes">
+	<input type="submit" value="Search for flights">
+</form>
+
+<h3>My Flights (for other customers):</h3>
+<ol>
+{% for flight in flights %}
+	<li> <strong>Airline:</strong> {{flight.airline_name}} <strong>Flight#:</strong> {{flight.flight_num}} <strong>Departure Airport:</strong> {{flight.departure_airport}} <strong>Departure Time:</strong> {{flight.departure_time}} <br> <strong>Arrival Airport:</strong> {{flight.arrival_airport}} <strong>Arrival Time:</strong>
+	{{flight.arrival_time}} <strong>Price:</strong> ${{flight.price}} <strong>Status:</strong> {{flight.status}} <strong>AirplaneID:</strong> {{flight.airplane_id}} <br> <strong>Customer Email: </strong>{{flight.customer_email}}
+	</li>
+{% endfor %}
+</ol>
+
+
+<a href="/commission">View Commission details</a> <br> <br>
+
+<a href="/logout">Logout</a>
+

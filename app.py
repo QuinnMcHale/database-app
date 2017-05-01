@@ -25,7 +25,7 @@ def info():
 	return render_template('info.html')
 @app.route('/search')
 def search():
-	if request.args.get('sourceAirport') is None:
+	if request.args.get('sourceAirport') == "":
 		return redirect(url_for('home'))
 	else:
 		sourceAirport = request.args.get('sourceAirport')
@@ -37,14 +37,63 @@ def search():
 		date = '%'+date+'%'
 		cursor.execute(query, (sourceAirport, destAirport, date))
 		data = cursor.fetchall()
+		print(data)
 		if not data:
 			noFlights = "No flights found"
 			cursor.close()
-			return render_template('search.html', noFlights = noFlights)
+			return render_template('response.html', noFlights = noFlights, username=session["username"])
 		else:
 			flights = data
 			cursor.close()
-			return render_template('search.html', flights = flights)
+			if request.args.get('customer') is not None:
+				return render_template('searchCustomer.html', flights = flights)
+			elif request.args.get('agent') is not None:
+				return render_template('searchAgent.html', flights = flights)
+			else:
+				return render_template('search.html', flights = flights)
+
+@app.route('/purchaseTicket', methods=['GET', 'POST'])
+def purchaseTicket():
+	if 'username' not in session or request.method == "GET":
+		return redirect(url_for('home'))
+	else:
+		airline = request.form['airline']
+		flightNumber = request.form['flightNumber']
+		role = session['role']
+
+		cursor = conn.cursor()
+		query = "SELECT ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s AND ticket_id NOT IN (SELECT ticket_id FROM purchases)"
+		cursor.execute(query, (airline, flightNumber))
+		data = cursor.fetchone()
+		if not data:
+			noTickets = "No tickets left for this flight"
+			cursor.close()
+			return render_template('response.html', noTickets = noTickets, username = session['username'])
+		else:
+			ticket = data
+			if role == "customer":
+				ins = "INSERT INTO purchases VALUES(%s,%s,NULL,CURDATE())"
+				cursor.execute(ins, (ticket["ticket_id"], session['username']))
+				conn.commit()
+				cursor.close()
+				ticketBought = "Successfully purchased ticket"
+				return render_template('response.html', ticketBought = ticketBought, username = session['username'])
+			else:
+				email = request.form['email']
+				emailQuery = "SELECT * FROM customer WHERE email = %s"
+				cursor.execute(emailQuery, (email))
+				email = cursor.fetchone()
+				if not email:
+					error = "No customer has that email address"
+					return render_template('response.html', error = error, username = session['username'])
+				else:
+					ins = "INSERT INTO purchases VALUES(%s,%s,%s,CURDATE())"
+					cursor.execute(ins, (ticket["ticket_id"], email["email"], session["id"]))
+					conn.commit()
+					cursor.close()
+					ticketBought = "Successfully purchased ticket"
+					return render_template('response.html', ticketBought = ticketBought, username = session['username'])
+
 @app.route('/status')
 def status():
 	airline = request.args.get('airline')
@@ -67,6 +116,25 @@ def status():
 def home():
 	if 'username' in session:
 		username = session['username']
+		if session['role'] == "customer":
+			cursor = conn.cursor()
+			query = "SELECT * FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE customer_email = %s"
+			cursor.execute(query, (username))
+			data = cursor.fetchall()
+			cursor.close()
+			flights = data
+			return render_template('homeCustomer.html', username=username, flights = flights)
+		elif session['role'] == "staff":
+			return render_template('homeStaff.html', username=username)
+		elif session['role'] == "agent":
+			cursor = conn.cursor()
+			agentID = session['id']
+			query = "SELECT * FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s"
+			cursor.execute(query, (agentID))
+			data = cursor.fetchall()
+			cursor.close()
+			flights = data
+			return render_template('homeAgent.html', username=username, flights = flights)
 		return render_template('home.html', username=username)
 	else:
 		return render_template('index.html')
@@ -207,8 +275,6 @@ def loginCustomerAuth():
 	if request.method == "GET":
 		return redirect(url_for('home'))
 	else: 
-		print("YOOOOOOO")
-		print(request.form['email'])
 		email = request.form['email']
 		origPassword = request.form['password'].encode('latin1')
 		password = hashlib.md5(origPassword).hexdigest()
@@ -221,15 +287,107 @@ def loginCustomerAuth():
 		cursor.close()
 		if data:
 			session['username'] = email
+			session['role'] = "customer"
 			return redirect(url_for('home'))
 		else:
 			error = "Invalid username or password"
 			return render_template('loginCustomer.html', error = error)
 
+@app.route('/loginStaffAuth', methods=['GET', 'POST'])
+def loginStaffAuth():
+	if request.method == "GET":
+		return redirect(url_for('home'))
+	else: 
+		username = request.form['username']
+		origPassword = request.form['password'].encode('latin1')
+		password = hashlib.md5(origPassword).hexdigest()
+
+		cursor = conn.cursor()
+		query = 'SELECT * FROM airline_staff WHERE username = %s AND password = %s'
+		cursor.execute(query, (username, password))
+
+		data = cursor.fetchone()
+		cursor.close()
+		if data:
+			session['username'] = username
+			session['role'] = "staff"
+			return redirect(url_for('home'))
+		else:
+			error = "Invalid username or password"
+			return render_template('loginStaff.html', error = error)
+
+@app.route('/loginAgentAuth', methods=['GET', 'POST'])
+def loginAgentAuth():
+	if request.method == "GET":
+		return redirect(url_for('home'))
+	else:
+		email = request.form['email']
+		origPassword = request.form['password'].encode('latin1')
+		password = hashlib.md5(origPassword).hexdigest()
+
+		cursor = conn.cursor()
+		query = 'SELECT * FROM booking_agent WHERE email = %s AND password = %s'
+		cursor.execute(query, (email, password))
+
+		data = cursor.fetchone()
+		cursor.close()
+		if data:
+			session['username'] = email
+			session['role'] = "agent"
+			session['id'] = data["booking_agent_id"]
+			return redirect(url_for('home'))
+		else:
+			error = "Invalid username or password"
+			return render_template('loginAgent.html', error = error)
+
+@app.route('/commission')
+def commission():
+	if 'username' not in session or session['role'] != "agent":
+		return redirect(url_for('home'))
+	else:
+		username = session['username']
+		agentID = session['id']
+		cursor = conn.cursor()
+		query1 = "SELECT SUM(price*.10) AS SUM FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s"
+		cursor.execute(query1, (agentID))
+		totalCommission = cursor.fetchone()
+		query2 = "SELECT AVG(price*.10) FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s"
+		cursor.execute(query2, (agentID))
+		averageCommission = cursor.fetchone()
+		query3 = "SELECT COUNT(price) FROM purchases AS COUNT NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s AND purchase_date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()"
+		cursor.execute(query3, (agentID))
+		lastThirtyDays = cursor.fetchone()
+		return render_template("commission.html", username = username, totalCommission = totalCommission["SUM"], averageCommission = averageCommission["AVG(price*.10)"], lastThirtyDays = lastThirtyDays["COUNT(price)"])
+@app.route('/commissionDetailed')
+def commissionDetailed():
+	if 'username' not in session or request.args.get('start') == "" or session['role'] != "agent":
+		return redirect(url_for('commission'))
+	else:
+		username = session['username']
+		agentID = session['id']
+		start = request.args.get('start')
+		end = request.args.get('end')
+
+		cursor = conn.cursor()
+		query1 = "SELECT SUM(price*.10) AS SUM FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s AND purchase_date BETWEEN %s AND %s"
+		cursor.execute(query1, (agentID, start, end))
+		totalCommission = cursor.fetchone()
+		if totalCommission["SUM"] is None:
+			totalCommission["SUM"] = 0
+		query2 = "SELECT COUNT(price) FROM purchases AS COUNT NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s AND purchase_date BETWEEN %s AND %s"
+		cursor.execute(query2, (agentID, start, end))
+		dateRange = cursor.fetchone()
+		return render_template("commissionDetailed.html", start = start, end = end, totalCommission = totalCommission["SUM"], dateRange = dateRange["COUNT(price)"])
+
 @app.route('/logout')
 def logout():
 	session.pop('username')
-	return redirect('/')
+	session.pop('role')
+	return redirect('/login')
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html')
 
 if __name__ == "__main__":
 	app.run('127.0.0.1', 5000, debug = True)
