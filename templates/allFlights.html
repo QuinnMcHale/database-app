@@ -1,0 +1,33 @@
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
+<h1>All flights for {{airline}}</h1>
+
+<ol>
+{% for flight in flights %}
+	<li> <strong>Flight#:</strong> {{flight.flight_num}} <strong>Departure Airport:</strong> {{flight.departure_airport}} <strong>Departure Time:</strong> {{flight.departure_time}} <br> <strong>Arrival Airport:</strong> {{flight.arrival_airport}} <strong>Arrival Time:</strong>
+	{{flight.arrival_time}} <strong>Price:</strong> ${{flight.price}} <strong>Status:</strong> {{flight.status}} <strong>AirplaneID:</strong> {{flight.airplane_id}}  
+	<form action="/flightCustomers" method="GET"> 
+	<input type="hidden" name="airline" value="{{flight.airline_name}}" required>
+	<input type="hidden" name="flightNumber" value="{{flight.flight_num}}" required>
+	<input type="submit" value="List of Customers">
+	</form>
+	</li>
+{% endfor %}
+</ol>
+
+<h2>View all flights between two dates</h2>
+<form action="/allFlightsFiltered" method="GET">
+	<input type="text" name="start" placeholder="Start Date (YYYY-MM-DD)" required> <br>
+	<input type="text" name="end" placeholder="End Date (YYYY-MM-DD" required> <br>
+	<input type="hidden" name="date" value="yes">
+	<input type="submit" value="Search">
+</form>
+
+<h2>View all flights between a source and destination airport</h2>
+<form action="/allFlightsFiltered" method="GET">
+	<input type="text" name="start" placeholder="Source Airport" required> <br>
+	<input type="text" name="end" placeholder="Destination Airport" required> <br>
+	<input type="hidden" name="airport" value="yes">
+	<input type="submit" value="Search">
+</form>
+
+<a href="/home"> Return Home </a>

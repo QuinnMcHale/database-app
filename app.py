@@ -20,20 +20,28 @@ def index():
 	else:
 		return render_template('index.html')
 
+def filter(text):
+    return (
+        text.replace("&", "&amp;").
+        replace('"', "&quot;").
+        replace("<", "&lt;").
+        replace(">", "&gt;")
+    )
+
 @app.route('/info')
 def info():
 	return render_template('info.html')
 @app.route('/search')
 def search():
-	if request.args.get('sourceAirport') == "":
+	if request.args.get('sourceAirport') is None:
 		return redirect(url_for('home'))
 	else:
-		sourceAirport = request.args.get('sourceAirport')
-		destAirport = request.args.get('destAirport')
-		date = request.args.get('date')
+		sourceAirport = filter(request.args.get('sourceAirport'))
+		destAirport = filter(request.args.get('destAirport'))
+		date = filter(request.args.get('date'))
 
 		cursor = conn.cursor()
-		query = "SELECT * FROM flight WHERE departure_airport = %s AND arrival_airport = %s AND departure_time LIKE %s"
+		query = "SELECT * FROM flight WHERE departure_airport = %s AND arrival_airport = %s AND departure_time LIKE %s AND departure_time BETWEEN NOW() AND NOW() + INTERVAL 1 YEAR"
 		date = '%'+date+'%'
 		cursor.execute(query, (sourceAirport, destAirport, date))
 		data = cursor.fetchall()
@@ -41,7 +49,11 @@ def search():
 		if not data:
 			noFlights = "No flights found"
 			cursor.close()
-			return render_template('response.html', noFlights = noFlights, username=session["username"])
+			if 'username' not in session:
+				username = "Guest"
+			else:
+				username = session["username"]
+			return render_template('response.html', noFlights = noFlights, username=username)
 		else:
 			flights = data
 			cursor.close()
@@ -57,9 +69,9 @@ def purchaseTicket():
 	if 'username' not in session or request.method == "GET":
 		return redirect(url_for('home'))
 	else:
-		airline = request.form['airline']
-		flightNumber = request.form['flightNumber']
-		role = session['role']
+		airline = filter(request.form['airline'])
+		flightNumber = filter(request.form['flightNumber'])
+		role = filter(session['role'])
 
 		cursor = conn.cursor()
 		query = "SELECT ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s AND ticket_id NOT IN (SELECT ticket_id FROM purchases)"
@@ -79,7 +91,7 @@ def purchaseTicket():
 				ticketBought = "Successfully purchased ticket"
 				return render_template('response.html', ticketBought = ticketBought, username = session['username'])
 			else:
-				email = request.form['email']
+				email = filter(request.form['email'])
 				emailQuery = "SELECT * FROM customer WHERE email = %s"
 				cursor.execute(emailQuery, (email))
 				email = cursor.fetchone()
@@ -96,8 +108,8 @@ def purchaseTicket():
 
 @app.route('/status')
 def status():
-	airline = request.args.get('airline')
-	flightNumber = request.args.get('flightNumber')
+	airline = filter(request.args.get('airline'))
+	flightNumber = filter(request.args.get('flightNumber'))
 
 	cursor = conn.cursor()
 	query = "SELECT * FROM flight WHERE airline_name = %s AND flight_num = %s"
@@ -118,26 +130,189 @@ def home():
 		username = session['username']
 		if session['role'] == "customer":
 			cursor = conn.cursor()
-			query = "SELECT * FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE customer_email = %s"
+			query = "SELECT * FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE customer_email = %s AND departure_time BETWEEN NOW() AND NOW() + INTERVAL 1 YEAR"
 			cursor.execute(query, (username))
 			data = cursor.fetchall()
 			cursor.close()
 			flights = data
 			return render_template('homeCustomer.html', username=username, flights = flights)
 		elif session['role'] == "staff":
-			return render_template('homeStaff.html', username=username)
+			airline = session['company']
+			cursor = conn.cursor()
+			query = "SELECT * FROM flight WHERE airline_name = %s AND departure_time BETWEEN NOW() AND NOW() + INTERVAL 30 DAY"
+			cursor.execute(query, (airline))
+			data = cursor.fetchall()
+			cursor.close()
+			flights = data
+			return render_template('homeStaff.html', username=username, airline=airline, flights = flights)
 		elif session['role'] == "agent":
 			cursor = conn.cursor()
 			agentID = session['id']
-			query = "SELECT * FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s"
+			query = "SELECT * FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s AND departure_time BETWEEN NOW() AND NOW() + INTERVAL 1 YEAR"
 			cursor.execute(query, (agentID))
 			data = cursor.fetchall()
 			cursor.close()
 			flights = data
 			return render_template('homeAgent.html', username=username, flights = flights)
-		return render_template('home.html', username=username)
 	else:
 		return render_template('index.html')
+
+@app.route('/newFlight', methods=['GET', 'POST'])
+def newFlight():
+	if request.method == "GET" or session['role'] != "staff":
+		return redirect(url_for('home'))
+	else:
+		airline = filter(request.form["airline"])
+		flightNumber = filter(request.form["flightNumber"])
+		departureAirport = filter(request.form["departureAirport"])
+		departureTime = filter(request.form["departureTime"])
+		arrivalAirport = filter(request.form["arrivalAirport"])
+		arrivalTime = filter(request.form["arrivalTime"])
+		price = filter(request.form["price"])
+		status = filter(request.form["status"])
+		airplaneID = filter(request.form["airplaneID"])
+
+		cursor = conn.cursor()
+		ins = 'INSERT INTO flight VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)'
+		cursor.execute(ins, (airline, flightNumber, departureAirport, departureTime, arrivalAirport, arrivalTime, price, status, airplaneID))
+		conn.commit()
+		cursor.close()
+		newFlight = "Successfully created new flight"
+		return render_template('response.html', newFlight = newFlight, username = session['username'])
+
+@app.route('/allFlights')
+def allFlights():
+	if session['role'] != "staff":
+		return redirect(url_for('home'))
+	else:
+		airline = session['company']
+		cursor = conn.cursor()
+		query = 'SELECT * FROM flight WHERE airline_name = %s'
+		cursor.execute(query, (airline))
+		data = cursor.fetchall()
+		flights = data
+		cursor.close()
+		return render_template('allFlights.html', flights = flights, airline = airline)
+
+@app.route('/allFlightsFiltered')
+def allFlightsFiltered():
+	if session['role'] != "staff" or request.args.get('start') is None:
+		return redirect(url_for('home'))
+	else:
+		if request.args.get('date') == "yes":
+			start = filter(request.args.get('start'))
+			end = filter(request.args.get('end'))
+			airline = session['company']
+
+			cursor = conn.cursor()
+			query = "SELECT * FROM flight WHERE airline_name = %s AND departure_time BETWEEN %s AND %s"
+			cursor.execute(query, (airline, start, end))
+			data = cursor.fetchall()
+			flights = data
+			cursor.close()
+			return render_template('allFlightsFiltered.html', flights = flights, airline = airline)
+		elif request.args.get('airport') == "yes":
+			start = filter(request.args.get('start'))
+			end = filter(request.args.get('end'))
+			airline = session['company']
+
+			cursor = conn.cursor()
+			query = "SELECT * FROM flight WHERE airline_name = %s AND departure_airport = %s AND arrival_airport = %s"
+			cursor.execute(query, (airline, start, end))
+			data = cursor.fetchall()
+			flights = data
+			cursor.close()
+			return render_template('allFlightsFiltered.html', flights = flights, airline = airline)
+@app.route('/flightCustomers')
+def flightCustomers():
+	if session['role'] != "staff" or request.args.get('airline') is None:
+		return redirect(url_for('home'))
+	else:
+		airline = request.args.get('airline')
+		flightNumber = request.args.get('flightNumber')
+
+		cursor = conn.cursor()
+		query = "SELECT * FROM purchases NATURAL JOIN ticket WHERE airline_name = %s AND flight_num = %s"
+		cursor.execute(query, (airline, flightNumber))
+		data = cursor.fetchall()
+		cursor.close()
+		return render_template('customers.html', customers = data, airline = airline, flightNumber = flightNumber)
+
+@app.route('/changeStatus')
+def changeStatus():
+	if session['role'] != "staff" or request.args.get('flightNumber') is None:
+		return redirect(url_for('home'))
+	else:	
+		airline = session['company']
+		status = filter(request.args.get('status'))
+		flightNumber = filter(request.args.get('flightNumber'))
+
+		cursor = conn.cursor()
+		query = "UPDATE flight SET status = %s WHERE airline_name = %s AND flight_num = %s"
+		cursor.execute(query, (status, airline, flightNumber))
+		cursor.close()
+		statusChange = "Flight's status successfully changed."
+		return render_template('response.html', statusChange = statusChange, username = session['username'])
+
+@app.route('/allAirplanes')
+def allAirplanes():
+	if session['role'] != "staff":
+		return redirect(url_for('home'))
+	else:
+		airline = session['company']
+		cursor = conn.cursor()
+		query = "SELECT * FROM airplane WHERE airline_name = %s"
+		cursor.execute(query, (airline))
+		data = cursor.fetchall()
+		cursor.close()
+		return render_template('airplanes.html', airline = airline, airplanes = data)
+
+@app.route('/addAirplane', methods=['GET', 'POST'])
+def addAirplane():
+	if session['role'] != "staff" or request.method == "GET" or request.form["airplaneID"] is None:
+		return redirect(url_for('home'))
+	else:
+		airline = session['company']
+		airplaneID = filter(request.form["airplaneID"])
+		seats = filter(request.form["seats"])
+
+		cursor = conn.cursor()
+		query = "SELECT * FROM airplane WHERE airline_name = %s AND airplane_id = %s"
+		cursor.execute(query, (airline, airplaneID))
+		data = cursor.fetchone()
+		if(data):
+			airplaneExists = "Airplane already exists"
+			cursor.close()
+			return render_template('response.html', airplaneExists = airplaneExists, username = session['username'])
+		else:
+			ins = "INSERT INTO airplane VALUES(%s, %s, %s)"
+			cursor.execute(ins, (airline, airplaneID, seats))
+			cursor.close()
+			newAirplane = "Airplane successfully added"
+			return render_template('response.html', newAirplane = newAirplane, username = session['username'])
+
+@app.route('/addAirport', methods=['GET', 'POST'])
+def addAirport():
+	if session['role'] != "staff" or request.method == "GET" or request.form["name"] is None:
+		return redirect(url_for('home'))
+	else:
+		name = filter(request.form['name'])
+		city = filter(request.form['city'])
+		cursor = conn.cursor()
+		query = "SELECT * FROM airport WHERE airport_name = %s"
+		cursor.execute(query, (name))
+		data = cursor.fetchone()
+		if(data):
+			airportExists = "Airport already exists"
+			cursor.close()
+			return render_template('response.html', airportExists = airportExists, username = session['username'])
+		else:
+			ins = "INSERT INTO airport VALUES(%s, %s)"
+			cursor.execute(ins, (name, city))
+			cursor.close()
+			newAirport = "Airport successfully added"
+			return render_template('response.html', newAirport = newAirport, username = session['username'])
+
 
 @app.route('/register')
 def register():
@@ -160,19 +335,19 @@ def registerCustomerAuth():
 	if request.method == "GET":
 		return redirect(url_for('home'))
 	else:
-		email = request.form['email']
-		name = request.form['name']
+		email = filter(request.form['email'])
+		name = filter(request.form['name'])
 		origPassword = request.form['password'].encode('latin1')
 		password = hashlib.md5(origPassword).hexdigest()
-		building = request.form['building']
-		street = request.form['street']
-		city = request.form['city']
-		state = request.form['state']
-		phone = request.form['phone']
-		passportNum = request.form['passportNum']
-		passportExp = request.form['passportExp']
-		passportCountry = request.form['passportCountry']
-		dob = request.form['dob']
+		building = filter(request.form['building'])
+		street = filter(request.form['street'])
+		city = filter(request.form['city'])
+		state = filter(request.form['state'])
+		phone = filter(request.form['phone'])
+		passportNum = filter(request.form['passportNum'])
+		passportExp = filter(request.form['passportExp'])
+		passportCountry = filter(request.form['passportCountry'])
+		dob = filter(request.form['dob'])
 
 		cursor = conn.cursor()
 		query = 'SELECT * FROM customer WHERE email = %s'
@@ -187,6 +362,7 @@ def registerCustomerAuth():
 			ins = 'INSERT INTO customer VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
 			cursor.execute(ins, (email, name, password, building, street, city, state, phone, passportNum, passportExp, passportCountry, dob))
 			conn.commit()
+			cursor.close()
 			register = "Succesfully registered user"
 			return render_template('index.html', register = register)
 
@@ -195,10 +371,10 @@ def registerAgentAuth():
 	if request.method == "GET":
 		return redirect(url_for('home'))
 	else:
-		email = request.form['email']
+		email = filter(request.form['email'])
 		origPassword = request.form['password'].encode('latin1')
 		password = hashlib.md5(origPassword).hexdigest()
-		agentID = request.form['agentID']
+		agentID = filter(request.form['agentID'])
 		cursor = conn.cursor()
 		query = 'SELECT * FROM booking_agent WHERE email = %s'
 		cursor.execute(query, (email))
@@ -221,13 +397,13 @@ def registerStaffAuth():
 	if request.method == "GET":
 		return redirect(url_for('home'))
 	else:
-		username = request.form['username']
+		username = filter(request.form['username'])
 		origPassword = request.form['password'].encode('latin1')
 		password = hashlib.md5(origPassword).hexdigest()
-		firstName = request.form['firstName']
-		lastName = request.form['lastName']
-		dob = request.form['dob']
-		airline = request.form['airline']
+		firstName = filter(request.form['firstName'])
+		lastName = filter(request.form['lastName'])
+		dob = filter(request.form['dob'])
+		airline = filter(request.form['airline'])
 
 		cursor = conn.cursor()
 		query = 'SELECT * FROM airline_staff WHERE username = %s'
@@ -275,7 +451,7 @@ def loginCustomerAuth():
 	if request.method == "GET":
 		return redirect(url_for('home'))
 	else: 
-		email = request.form['email']
+		email = filter(request.form['email'])
 		origPassword = request.form['password'].encode('latin1')
 		password = hashlib.md5(origPassword).hexdigest()
 
@@ -298,7 +474,7 @@ def loginStaffAuth():
 	if request.method == "GET":
 		return redirect(url_for('home'))
 	else: 
-		username = request.form['username']
+		username = filter(request.form['username'])
 		origPassword = request.form['password'].encode('latin1')
 		password = hashlib.md5(origPassword).hexdigest()
 
@@ -311,6 +487,7 @@ def loginStaffAuth():
 		if data:
 			session['username'] = username
 			session['role'] = "staff"
+			session['company'] = data["airline_name"]
 			return redirect(url_for('home'))
 		else:
 			error = "Invalid username or password"
@@ -321,13 +498,14 @@ def loginAgentAuth():
 	if request.method == "GET":
 		return redirect(url_for('home'))
 	else:
-		email = request.form['email']
+		email = filter(request.form['email'])
 		origPassword = request.form['password'].encode('latin1')
 		password = hashlib.md5(origPassword).hexdigest()
+		agentID = filter(request.form['id'])
 
 		cursor = conn.cursor()
-		query = 'SELECT * FROM booking_agent WHERE email = %s AND password = %s'
-		cursor.execute(query, (email, password))
+		query = 'SELECT * FROM booking_agent WHERE email = %s AND password = %s AND booking_agent_id = %s'
+		cursor.execute(query, (email, password, agentID))
 
 		data = cursor.fetchone()
 		cursor.close()
@@ -337,7 +515,7 @@ def loginAgentAuth():
 			session['id'] = data["booking_agent_id"]
 			return redirect(url_for('home'))
 		else:
-			error = "Invalid username or password"
+			error = "Invalid username or password or booking agent ID"
 			return render_template('loginAgent.html', error = error)
 
 @app.route('/commission')
@@ -357,16 +535,16 @@ def commission():
 		query3 = "SELECT COUNT(price) FROM purchases AS COUNT NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s AND purchase_date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()"
 		cursor.execute(query3, (agentID))
 		lastThirtyDays = cursor.fetchone()
-		return render_template("commission.html", username = username, totalCommission = totalCommission["SUM"], averageCommission = averageCommission["AVG(price*.10)"], lastThirtyDays = lastThirtyDays["COUNT(price)"])
+		return render_template("commission.html", username = username, totalCommission = totalCommission["SUM"], averageCommission = "{0:.2f}".format(averageCommission["AVG(price*.10)"]), lastThirtyDays = lastThirtyDays["COUNT(price)"])
 @app.route('/commissionDetailed')
 def commissionDetailed():
-	if 'username' not in session or request.args.get('start') == "" or session['role'] != "agent":
+	if 'username' not in session or request.args.get('start') is None or session['role'] != "agent":
 		return redirect(url_for('commission'))
 	else:
 		username = session['username']
 		agentID = session['id']
-		start = request.args.get('start')
-		end = request.args.get('end')
+		start = filter(request.args.get('start'))
+		end = filter(request.args.get('end'))
 
 		cursor = conn.cursor()
 		query1 = "SELECT SUM(price*.10) AS SUM FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE booking_agent_id = %s AND purchase_date BETWEEN %s AND %s"

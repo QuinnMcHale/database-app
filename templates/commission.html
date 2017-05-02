@@ -1,8 +1,8 @@
 <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
 <h1>{{username}} Commission Details</h1>
-<h4>Total amount of commission received in the past 30 days: ${{totalCommission}} </h4> 
-<h4>Average commission per ticket booked: ${{averageCommission}}</h4>
-<h4>Total number of tickets sold in the past 30 days: {{lastThirtyDays}}</h4>
+<h4>Total amount of commission received in the past 30 days:</h4>  ${{totalCommission}} <br> <br>
+<h4>Average commission per ticket booked in the past 30 days:</h4> ${{averageCommission}} <br> <br>
+<h4>Total number of tickets sold in the past 30 days:</h4> {{lastThirtyDays}} <br> <br>
 
 <h2>View total commission and total ticket sales between two dates</h2>
 <form action="/commissionDetailed" method="GET">

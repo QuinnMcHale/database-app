@@ -13,9 +13,32 @@
 	{{noFlights}} <br> <br>
 {% endif %}
 
+{% if newFlight %}
+	{{newFlight}} <br> <br>
+{% endif %}
 
 {% if error %}
 	Error: {{error}} <br> <br>
+{% endif %}
+
+{% if statusChange %}
+	{{statusChange}} <br> <br>
+{% endif %}
+
+{% if newAirplane %}
+	{{newAirplane}} <br> <br>
+{% endif %}
+
+{% if newAirport %}
+	{{newAirport}} <br> <br>
+{% endif %}
+
+{% if airplaneExists %}
+	{{airplaneExists}} <br> <br>
+{% endif %}
+
+{% if airportExists %}
+	{{airportExists}} <br> <br>
 {% endif %}
 
 <a href="/home"> Return Home </a>

@@ -1,0 +1,17 @@
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
+<h1>{{airline}}'s Airplanes</h1>
+<ol>
+{% for airplane in airplanes %}
+	<li> <strong>Airplane ID:</strong> {{airplane.airplane_id}} <strong>Seats: </strong>{{airplane.seats}}
+	</li> <br>
+{% endfor %}
+</ol>
+
+<form action="/addAirplane" method="POST"> 
+	<input type="text" name="airplaneID" placeholder="Airplane ID" required> <br>
+	<input type="text" name="seats" placeholder="Number of Seats" required> <br>
+	<input type="submit" value="Add new airplane">
+</form>
+
+
+<a href="/home"> Return Home </a>

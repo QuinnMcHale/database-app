@@ -3,12 +3,16 @@ body {
 }
 
 input {
-	width: 200px;
+	width: 250px;
 }
 
 a {
 	color: #0000EE;
 	text-decoration: none;
+}
+
+h4 {
+	display: inline;
 }
 
 a:hover {

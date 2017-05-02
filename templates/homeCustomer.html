@@ -12,7 +12,7 @@
 	<input type="submit" value="Search for flights">
 </form>
 
-<h3>My Flights:</h3>
+<h3>My Upcoming Flights:</h3>
 <ol>
 {% for flight in flights %}
 	<li> <strong>Airline:</strong> {{flight.airline_name}} <strong>Flight#:</strong> {{flight.flight_num}} <strong>Departure Airport:</strong> {{flight.departure_airport}} <strong>Departure Time:</strong> {{flight.departure_time}} <br> <strong>Arrival Airport:</strong> {{flight.arrival_airport}} <strong>Arrival Time:</strong>

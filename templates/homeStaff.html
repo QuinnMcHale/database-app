@@ -1,7 +1,52 @@
 <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
-<h1>Welcome {{username}}</h1>
+<h1>Welcome {{username}} ({{airline}})</h1>
 
+<h3>Upcoming {{airline}} Flights (30 days):</h3>
+<ol>
+{% for flight in flights %}
+	<li> <strong>Flight#:</strong> {{flight.flight_num}} <strong>Departure Airport:</strong> {{flight.departure_airport}} <strong>Departure Time:</strong> {{flight.departure_time}} <br> <strong>Arrival Airport:</strong> {{flight.arrival_airport}} <strong>Arrival Time:</strong>
+	{{flight.arrival_time}} <strong>Price:</strong> ${{flight.price}} <strong>Status:</strong> {{flight.status}} <strong>AirplaneID:</strong> {{flight.airplane_id}} 	
+	<form action="/flightCustomers" method="GET"> 
+	<input type="hidden" name="airline" value="{{flight.airline_name}}" required> 
+	<input type="hidden" name="flightNumber" value="{{flight.flight_num}}" required>
+	<input type="submit" value="List of Customers">
+	</form>
+	</li>
+{% endfor %}
+</ol>
+<a href="/allFlights"> All flights </a> <br> <br>
 
+<a href="/allAirplanes"> All airplanes </a> <br> 
+
+<a href="/customerInfo"> Customer info </a> <br>
+
+<h3>Create a New Flight for {{airline}}:</h3>
+<form action="/newFlight" method="POST">
+	<input type="hidden" name="airline" value="{{airline}}">
+	<input type="number" name="flightNumber" placeholder="Flight Number" required> <br>
+	<input type="text" name="departureAirport" placeholder="Departure Airport Name" required> <br>
+	<input type="text" name="departureTime" placeholder="Departure Time (YYYY-MM-DD HH:MM:SS)" required> <br>
+	<input type="text" name="arrivalAirport" placeholder="Destination Airport Name" required> <br>
+	<input type="text" name="arrivalTime" placeholder="Arrival Time (YYYY-MM-DD HH:MM:SS)" required> <br>
+	<input type="number" name="price" placeholder="Price" required> <br>
+	<input type="text" name="status" placeholder="Status" required> <br>
+	<input type="number" name="airplaneID" placeholder="Airplane ID" required> <br> <br>
+	<input type="submit" value="Create Flight">
+</form>
+
+<h3>Change Status of Flight</h3>
+<form action="/changeStatus" method="GET"> 
+	<input type="text" name="flightNumber" placeholder="Flight Number" required> <br>
+	<input type="text" name="status" placeholder="New Status" required> <br> <br>
+	<input type="submit" value="Change Flight Status">
+</form>
+
+<h3>Add Airport</h3>
+<form action="/addAirport" method="POST">
+	<input type="text" name="name" placeholder="Airport Name" required> <br>
+	<input type="text" name="city" placeholder="Airport City" required> <br> <br>
+	<input type="submit" value="Add Airport">
+</form>
 
 <a href="/logout">Logout</a>
 

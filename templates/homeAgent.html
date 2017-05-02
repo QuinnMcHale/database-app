@@ -13,15 +13,14 @@
 	<input type="submit" value="Search for flights">
 </form>
 
-<h3>My Flights (for other customers):</h3>
+<h3>My Upcoming Flights (for other customers):</h3>
 <ol>
 {% for flight in flights %}
 	<li> <strong>Airline:</strong> {{flight.airline_name}} <strong>Flight#:</strong> {{flight.flight_num}} <strong>Departure Airport:</strong> {{flight.departure_airport}} <strong>Departure Time:</strong> {{flight.departure_time}} <br> <strong>Arrival Airport:</strong> {{flight.arrival_airport}} <strong>Arrival Time:</strong>
-	{{flight.arrival_time}} <strong>Price:</strong> ${{flight.price}} <strong>Status:</strong> {{flight.status}} <strong>AirplaneID:</strong> {{flight.airplane_id}} <br> <strong>Customer Email: </strong>{{flight.customer_email}}
+	{{flight.arrival_time}} <strong>Price:</strong> ${{flight.price}} <strong>Status:</strong> {{flight.status}} <strong>AirplaneID:</strong> {{flight.airplane_id}} <br> <strong>Customer Email: </strong>{{flight.customer_email}} <strong>TicketID: </strong>{{flight.ticket_id}}
 	</li>
 {% endfor %}
 </ol>
-
 
 <a href="/commission">View Commission details</a> <br> <br>
 
