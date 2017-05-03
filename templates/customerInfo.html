@@ -1,0 +1,19 @@
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
+<h1> Customer Info </h1>
+
+<h3>Top 5 most frequent customers within the past year:</h3>
+
+<ol>
+{% for customer in customers %}
+	<li> <strong>Email:</strong> {{customer.customer_email}}  <strong>Tickets Bought: </strong>{{customer.count}}
+	</li> <br>
+{% endfor %}
+</ol>
+
+<h3>See the flights associated with a particular customer</h3>
+<form action="/flightsTaken" method="GET">
+	<input type="text" name="email" placeholder="Customer email" required> <br>
+	<input type="submit" value="View Flights">
+</form>
+
+<a href="/home">Home</a>

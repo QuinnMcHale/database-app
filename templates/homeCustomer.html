@@ -16,10 +16,13 @@
 <ol>
 {% for flight in flights %}
 	<li> <strong>Airline:</strong> {{flight.airline_name}} <strong>Flight#:</strong> {{flight.flight_num}} <strong>Departure Airport:</strong> {{flight.departure_airport}} <strong>Departure Time:</strong> {{flight.departure_time}} <br> <strong>Arrival Airport:</strong> {{flight.arrival_airport}} <strong>Arrival Time:</strong>
-	{{flight.arrival_time}} <strong>Price:</strong> ${{flight.price}} <strong>Status:</strong> {{flight.status}} <strong>AirplaneID:</strong> {{flight.airplane_id}} 
-	</li>
+	{{flight.arrival_time}} <strong>Price:</strong> ${{flight.price}} <strong>Status:</strong> {{flight.status}} <strong>AirplaneID:</strong> {{flight.airplane_id}}
+	</li> <br>
 {% endfor %}
 </ol>
+
+
+<a href="/info">Flight info</a> <br> <br>
 
 
 <a href="/logout">Logout</a>

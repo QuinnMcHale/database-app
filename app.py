@@ -159,7 +159,7 @@ def home():
 
 @app.route('/newFlight', methods=['GET', 'POST'])
 def newFlight():
-	if request.method == "GET" or session['role'] != "staff":
+	if request.method == "GET" or session.get('role') != "staff":
 		return redirect(url_for('home'))
 	else:
 		airline = filter(request.form["airline"])
@@ -182,7 +182,7 @@ def newFlight():
 
 @app.route('/allFlights')
 def allFlights():
-	if session['role'] != "staff":
+	if session.get('role') != "staff":
 		return redirect(url_for('home'))
 	else:
 		airline = session['company']
@@ -196,7 +196,7 @@ def allFlights():
 
 @app.route('/allFlightsFiltered')
 def allFlightsFiltered():
-	if session['role'] != "staff" or request.args.get('start') is None:
+	if session.get('role') != "staff" or request.args.get('start') is None:
 		return redirect(url_for('home'))
 	else:
 		if request.args.get('date') == "yes":
@@ -225,7 +225,7 @@ def allFlightsFiltered():
 			return render_template('allFlightsFiltered.html', flights = flights, airline = airline)
 @app.route('/flightCustomers')
 def flightCustomers():
-	if session['role'] != "staff" or request.args.get('airline') is None:
+	if session.get('role') != "staff" or request.args.get('airline') is None:
 		return redirect(url_for('home'))
 	else:
 		airline = request.args.get('airline')
@@ -240,7 +240,7 @@ def flightCustomers():
 
 @app.route('/changeStatus')
 def changeStatus():
-	if session['role'] != "staff" or request.args.get('flightNumber') is None:
+	if session.get('role') != "staff" or request.args.get('flightNumber') is None:
 		return redirect(url_for('home'))
 	else:	
 		airline = session['company']
@@ -250,13 +250,14 @@ def changeStatus():
 		cursor = conn.cursor()
 		query = "UPDATE flight SET status = %s WHERE airline_name = %s AND flight_num = %s"
 		cursor.execute(query, (status, airline, flightNumber))
+		conn.commit()
 		cursor.close()
 		statusChange = "Flight's status successfully changed."
 		return render_template('response.html', statusChange = statusChange, username = session['username'])
 
 @app.route('/allAirplanes')
 def allAirplanes():
-	if session['role'] != "staff":
+	if session.get('role') != "staff":
 		return redirect(url_for('home'))
 	else:
 		airline = session['company']
@@ -269,7 +270,7 @@ def allAirplanes():
 
 @app.route('/addAirplane', methods=['GET', 'POST'])
 def addAirplane():
-	if session['role'] != "staff" or request.method == "GET" or request.form["airplaneID"] is None:
+	if session.get('role') != "staff" or request.method == "GET" or request.form["airplaneID"] is None:
 		return redirect(url_for('home'))
 	else:
 		airline = session['company']
@@ -287,13 +288,14 @@ def addAirplane():
 		else:
 			ins = "INSERT INTO airplane VALUES(%s, %s, %s)"
 			cursor.execute(ins, (airline, airplaneID, seats))
+			conn.commit()
 			cursor.close()
 			newAirplane = "Airplane successfully added"
 			return render_template('response.html', newAirplane = newAirplane, username = session['username'])
 
 @app.route('/addAirport', methods=['GET', 'POST'])
 def addAirport():
-	if session['role'] != "staff" or request.method == "GET" or request.form["name"] is None:
+	if session.get('role') != "staff" or request.method == "GET" or request.form["name"] is None:
 		return redirect(url_for('home'))
 	else:
 		name = filter(request.form['name'])
@@ -309,11 +311,89 @@ def addAirport():
 		else:
 			ins = "INSERT INTO airport VALUES(%s, %s)"
 			cursor.execute(ins, (name, city))
+			conn.commit()
 			cursor.close()
 			newAirport = "Airport successfully added"
 			return render_template('response.html', newAirport = newAirport, username = session['username'])
 
+@app.route('/allAgents')
+def allAgents():
+	if session.get('role') != "staff":
+		return redirect(url_for('home'))
+	else:
+		cursor = conn.cursor()
+		query1 = "SELECT * FROM booking_agent"
+		cursor.execute(query1)
+		allAgents = cursor.fetchall()
+		query2 = "SELECT COUNT(price) AS count, booking_agent.email, booking_agent.booking_agent_id FROM purchases NATURAL JOIN ticket NATURAL JOIN flight NATURAL JOIN booking_agent WHERE purchase_date BETWEEN NOW() - INTERVAL 30 DAY AND NOW() GROUP BY booking_agent.email ORDER BY COUNT(price) DESC LIMIT 5"
+		cursor.execute(query2)
+		topFiveMonth = cursor.fetchall()
+		query3 = "SELECT COUNT(price) AS count, booking_agent.email, booking_agent.booking_agent_id FROM purchases NATURAL JOIN ticket NATURAL JOIN flight NATURAL JOIN booking_agent WHERE purchase_date BETWEEN NOW() - INTERVAL 1 YEAR AND NOW() GROUP BY booking_agent.email ORDER BY COUNT(price) DESC LIMIT 5"
+		cursor.execute(query3)
+		topFiveYear = cursor.fetchall()
+		query4 = "SELECT SUM(price*.10) AS sum, booking_agent.email, booking_agent.booking_agent_id FROM purchases NATURAL JOIN ticket NATURAL JOIN flight NATURAL JOIN booking_agent WHERE purchase_date BETWEEN NOW() - INTERVAL 1 YEAR AND NOW() GROUP BY booking_agent.email ORDER BY SUM(price*.10) DESC LIMIT 5"
+		cursor.execute(query4)
+		topFiveCom = cursor.fetchall()
+		cursor.close()
+		return render_template('allAgents.html', agents = allAgents, topFiveMonth = topFiveMonth, topFiveYear = topFiveYear, topFiveCom = topFiveCom)
 
+@app.route('/customerInfo')
+def customerInfo():
+	if session.get('role') != "staff":
+		return redirect(url_for('home'))
+	else:
+		airline = session['company']
+		cursor = conn.cursor()
+		query1 = "SELECT COUNT(ticket_id) as count, customer_email FROM purchases NATURAL JOIN ticket NATURAL JOIN flight WHERE airline_name = %s AND purchase_date BETWEEN NOW() - INTERVAL 1 YEAR AND NOW() GROUP BY customer_email ORDER BY COUNT(ticket_id) DESC LIMIT 5"
+		cursor.execute(query1,(airline))
+		customers = cursor.fetchall()
+		cursor.close()
+		return render_template('customerInfo.html', customers = customers)
+@app.route('/flightsTaken')
+def flightsTaken():
+	if session.get('role') != "staff" or request.args.get('email') is None:
+		return redirect(url_for('home'))
+	else:
+		email = filter(request.args.get('email'))
+		airline = session['company']
+
+		cursor = conn.cursor()
+		query = "SELECT * FROM flight NATURAL JOIN ticket NATURAL JOIN purchases WHERE customer_email = %s AND airline_name = %s"
+		cursor.execute(query,(email,airline))
+		flights = cursor.fetchall()
+		cursor.close()
+		return render_template('flightsTaken.html', flights = flights, email = email)
+
+@app.route('/viewReports')
+def viewReports():
+	if session.get('role') != "staff":
+		return redirect(url_for('home'))
+	else:
+		airline = session['company']
+
+		cursor = conn.cursor()
+		query1 = "SELECT COUNT(ticket_id) as count FROM purchases NATURAL JOIN ticket WHERE airline_name = %s AND purchase_date BETWEEN NOW() - INTERVAL 1 YEAR AND NOW()"
+		cursor.execute(query1, (airline))
+		lastYear = cursor.fetchone()
+		query2 = "SELECT COUNT(ticket_id) as count FROM purchases NATURAL JOIN ticket WHERE airline_name = %s AND purchase_date BETWEEN NOW() - INTERVAL 30 DAY AND NOW()"
+		cursor.execute(query2, (airline))
+		lastMonth = cursor.fetchone()
+		cursor.close()
+		return render_template('viewReports.html', lastYear = lastYear, lastMonth = lastMonth)
+@app.route('/viewReportsDate')
+def viewReportsDate():
+	if session.get('role') != "staff" or request.args.get('start') is None:
+		return redirect(url_for('home'))
+	else:
+		airline = session['company']
+		start = filter(request.args.get('start'))
+		end = filter(request.args.get('end'))
+		cursor = conn.cursor()
+		query = "SELECT COUNT(ticket_id) as count FROM purchases NATURAL JOIN ticket WHERE airline_name = %s AND purchase_date BETWEEN %s AND %s"
+		cursor.execute(query,(airline,start,end))
+		date = cursor.fetchone()
+		cursor.close()
+		return render_template('viewReportsDate.html', date = date, start = start, end = end)
 @app.route('/register')
 def register():
 	return render_template('register.html')
@@ -520,7 +600,7 @@ def loginAgentAuth():
 
 @app.route('/commission')
 def commission():
-	if 'username' not in session or session['role'] != "agent":
+	if 'username' not in session or session.get('role') != "agent":
 		return redirect(url_for('home'))
 	else:
 		username = session['username']
@@ -538,7 +618,7 @@ def commission():
 		return render_template("commission.html", username = username, totalCommission = totalCommission["SUM"], averageCommission = "{0:.2f}".format(averageCommission["AVG(price*.10)"]), lastThirtyDays = lastThirtyDays["COUNT(price)"])
 @app.route('/commissionDetailed')
 def commissionDetailed():
-	if 'username' not in session or request.args.get('start') is None or session['role'] != "agent":
+	if 'username' not in session or request.args.get('start') is None or session.get('role') != "agent":
 		return redirect(url_for('commission'))
 	else:
 		username = session['username']
@@ -561,6 +641,10 @@ def commissionDetailed():
 def logout():
 	session.pop('username')
 	session.pop('role')
+	if 'company' in session:
+		session.pop('company')
+	if 'id' in session:
+		session.pop('id')
 	return redirect('/login')
 
 @app.errorhandler(404)

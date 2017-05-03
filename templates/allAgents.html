@@ -1,0 +1,37 @@
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
+<h1>All Booking Agents</h1>
+
+<ol>
+{% for agent in agents %}
+	<li> <strong>Email:</strong> {{agent.email}} <strong>ID: </strong>{{agent.booking_agent_id}}
+	</li> <br>
+{% endfor %}
+</ol>
+
+
+<h3>Top 5 Booking Agents based off number of ticket sales for the past month:</h3>
+<ol>
+{% for agent in topFiveMonth %}
+	<li> <strong>Email:</strong> {{agent.email}} <strong>ID: </strong>{{agent.booking_agent_id}} <strong>Tickets Sold: </strong>{{agent.count}}
+	</li> <br>
+{% endfor %}
+</ol>
+
+
+<h3>Top 5 Booking Agents based off number of tickets sales for the past year:</h3>
+<ol>
+{% for agent in topFiveYear %}
+	<li> <strong>Email:</strong> {{agent.email}} <strong>ID: </strong>{{agent.booking_agent_id}} <strong>Tickets Sold: </strong>{{agent.count}}
+	</li> <br>
+{% endfor %}
+</ol>
+
+<h3>Top 5 booking agents based on commission received for the past year:</h3>
+<ol>
+{% for agent in topFiveCom %}
+	<li> <strong>Email:</strong> {{agent.email}} <strong>ID: </strong>{{agent.booking_agent_id}} <strong>Commission Received: </strong>{{agent.sum}}
+	</li> <br>
+{% endfor %}
+</ol>
+
+<a href="/home">Home</a>

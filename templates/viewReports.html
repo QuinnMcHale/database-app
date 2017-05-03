@@ -1,0 +1,19 @@
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/base.css') }}">
+<h1>Reports:</h1>
+
+<h4>Total amount of tickets sold for the past year:</h4> {{lastYear.count}} <br> <br>
+
+
+
+<h4>Total amount of tickets sold for the past month:</h4> {{lastMonth.count}} <br> <br>
+
+
+<h3>Enter beginning and ending dates and calculate total tickets sold:</h3> 
+<form action="/viewReportsDate" method="GET">
+	<input type="text" name="start" placeholder="Start Date (YYYY-MM-DD)" required> <br>
+	<input type="text" name="end" placeholder="End Date (YYYY-MM-DD)" required> <br>
+	<input type="submit" value="Calculate Total Tickets Sold">
+</form>
+
+
+<a href="/home">Home</a>
